@@ -39,3 +39,8 @@
 
 # debug information files
 *.dwo
+
+vscode_build/
+python/build/
+venv/
+__pycache__
