@@ -18,7 +18,7 @@ ExampleDetectorPlugin::ExampleDetectorPlugin()
 {
   // Setup logging for the class
   logger_ = Logger::getLogger("FP.ExampleDetectorPlugin");
-  LOG4CXX_INFO(logger_, "LATRDProcessPlugin version " << this->get_version_long() << " loaded");
+  LOG4CXX_INFO(logger_, "ExampleDetectorPlugin version " << this->get_version_long() << " loaded");
 }
 
 ExampleDetectorPlugin::~ExampleDetectorPlugin()
