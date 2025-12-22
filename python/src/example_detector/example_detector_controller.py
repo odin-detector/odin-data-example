@@ -2,21 +2,24 @@
 Created on 17th November 2025
 :author: Alan Greer
 """
-from datetime import datetime
-import example_detector
+
 import logging
 import socket
 import struct
 import threading
 import time
+from datetime import datetime
+from importlib.resources import as_file, files
+
+import example_detector
 from odin.adapters.parameter_tree import ParameterTree
-from importlib.resources import files, as_file
+
 
 class ExampleDetectorController(object):
     # Class constants
     TIME_TICK = 0.1
 
-    def __init__(self):
+    def __init__(self, ports: tuple[int]):
         logging.basicConfig(format='%(asctime)-15s %(message)s')
         self._log = logging.getLogger(".".join([__name__, self.__class__.__name__]))
         self._log.setLevel(logging.DEBUG)
@@ -29,7 +32,7 @@ class ExampleDetectorController(object):
         self._update_time = datetime.now()
         self._udp_socket = None
         self._address = "localhost"
-        self._port = 61649
+        self._ports = ports
         self._image_bytes = None
 
         self.load_image()
@@ -41,14 +44,15 @@ class ExampleDetectorController(object):
                 "frames": (self.get_config_frames, self.set_config_frames, {}),
                 "exposure_time": (self.get_exposure_time, self.set_exposure_time, {}),
             },
-            "command":{
+            "command": {
                 "allowed": (["start", "stop"], None, {}),
                 "execute": (lambda: "", self.execute, {}),
             },
             "status": {
                 "acquiring": (lambda: self._acquiring, None, {}),
                 "frames": (lambda: self._acquired_frames, None, {}),
-            }
+            },
+            "module": {"value": "ExampleDetectorAdapter"},
         }
         self._params = ParameterTree(self._tree)
 
@@ -90,7 +94,7 @@ class ExampleDetectorController(object):
 
     def get_config_frames(self):
         return self._config_frames
-    
+
     def set_exposure_time(self, value):
         self._config_exposure_time = value
 
@@ -120,6 +124,7 @@ class ExampleDetectorController(object):
             self._acquiring = False
 
     def update_loop(self):
+        port_idx = 0
         while self._acq_thread_running:
             # Execute at 1/TIME_TICK Hz
             time.sleep(ExampleDetectorController.TIME_TICK)
@@ -129,44 +134,35 @@ class ExampleDetectorController(object):
                 if self._acquiring:
                     # Have we waited long enough for a new frame
                     if (datetime.now() - self._update_time).total_seconds() >= self._config_exposure_time:
+                        port = self._ports[port_idx]
                         # Send the frame
-                        logging.info("Sending frame %d", self._acquired_frames)
-                        self.send_frame()
+                        logging.info(
+                            "Sending frame %d -> %d", self._acquired_frames, port
+                        )
+                        self.send_frame(self._ports[port_idx])
                         # Increment the frame count
                         self._acquired_frames += 1
                         # Reset the timer
                         self._update_time = datetime.now()
+                        # Update port
+                        port_idx = (port_idx + 1) % len(self._ports)
                     # Check if the number of frames requested have been sent
                     if self._acquired_frames == self._config_frames:
                         # Turn off acquiring
                         self._acquiring = False
+                        port_idx = 0
 
-    def send_frame(self):
+    def send_frame(self, port: int):
         image_lines = [bytearray(self._image_bytes[i:i + 256]) for i in range(0, len(self._image_bytes), 256)]
         packet = 0
         # Inject the frame number into the data
         # Loop over 32 bits, set 1 bits to black
         for bit in range(32):
-            value = self._acquired_frames>>bit & 1
-#            self._log.error("Value: %d", value)
+            value = self._acquired_frames >> bit & 1
             if value == 1:
-#                for line in image_lines[200:210]:
-#                self._log.error("IMAGE BYTES: ", image_lines[200])
                 for index in range(210, 230):
                     for pixel in range(208-(bit*5)-3, 208-(bit*5)+1):
                         image_lines[index][pixel] = 1
-#                    image_lines[201][index] = 1
-#                    image_lines[202][index] = 1
-#                    image_lines[203][index] = 1
-#                    line[208-(bit*5)] = 0
-#                    line[208-(bit*5)-1] = 0x00
-#                    line[208-(bit*5)-2] = 0x00
-#                    line[208-(bit*5)-3] = 0x00
-#            logging.error("Bit: %d", value)
-#
-# 
-# 
-#                 self._log.error("IMAGE BYTES AFTER: ", image_lines[200])
 
         for line in image_lines:
             # Create the header information
@@ -179,8 +175,7 @@ class ExampleDetectorController(object):
                 self._log.error("Packet: ", packet_bytes)
 
             # Send the bytes over UDP
-            bytes_sent = self._udp_socket.sendto(packet_bytes, (self._address, self._port))
-#            self._log.debug("Bytes sent for packet [%d]: %d", packet, bytes_sent)
+            self._udp_socket.sendto(packet_bytes, (self._address, port))
             packet += 1
 
 

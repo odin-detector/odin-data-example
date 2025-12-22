@@ -35,8 +35,9 @@ class ExampleDetectorAdapter(ApiAdapter):
         # Parse options
         background_task_enable = bool(self.options.get('background_task_enable', False))
         background_task_interval = float(self.options.get('background_task_interval', 1.0))
+        ports = tuple(int(port) for port in self.options.get('ports', "61649").split(','))
 
-        self.controller = ExampleDetectorController()
+        self.controller = ExampleDetectorController(ports)
 
         logging.debug('ExampleDetectorAdapter loaded')
 
