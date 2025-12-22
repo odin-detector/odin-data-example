@@ -1,0 +1,97 @@
+[
+  {
+    "fr_setup": {
+      "fr_ready_cnxn": "tcp://127.0.0.1:10001",
+      "fr_release_cnxn": "tcp://127.0.0.1:10002"
+    },
+    "meta_endpoint": "tcp://*:5008"
+  },
+  {
+    "plugin": {
+      "load": {
+        "index": "example",
+        "name": "ExampleDetectorPlugin",
+        "library": "/odin/lib/libExampleDetectorPlugin.so"
+      }
+    }
+  },
+  {
+    "plugin": {
+      "load": {
+        "index": "hdf",
+        "name": "FileWriterPlugin",
+        "library": "/odin/lib/libHdf5Plugin.so"
+      }
+    }
+  },
+  {
+    "plugin": {
+      "load": {
+        "index": "live",
+        "name": "LiveViewPlugin",
+        "library": "/odin/lib/libLiveViewPlugin.so"
+      }
+    }
+  },
+  {
+    "plugin": {
+      "connect": {
+        "index": "example",
+        "connection": "frame_receiver"
+      }
+    }
+  },
+  {
+    "plugin": {
+      "connect": {
+        "index": "hdf",
+        "connection": "example"
+      }
+    }
+  },
+  {
+    "plugin": {
+      "connect": {
+        "index": "live",
+        "connection": "example"
+      }
+    }
+  },
+  {
+    "hdf": {
+      "process": {
+        "number": 4,
+        "rank": 0
+      }
+    }
+  },
+  {
+    "hdf": {
+      "dataset": {
+        "example": {
+          "datatype": "uint8",
+          "compression": "none",
+          "dims": [
+            256,
+            256
+          ],
+          "chunks": [
+            1,
+            256,
+            256
+          ]
+        }
+      },
+      "file": {
+        "path": "/tmp",
+        "first_number": 0
+      },
+      "timeout_timer_period": 3000
+    }
+  },
+  {
+    "live": {
+      "live_view_socket_addr": "tcp://127.0.0.1:10005"
+    }
+  }
+]
