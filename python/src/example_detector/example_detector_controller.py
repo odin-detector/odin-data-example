@@ -33,6 +33,7 @@ class ExampleDetectorController(object):
         self._udp_socket = None
         self._address = "localhost"
         self._ports = ports
+        self._port_idx = 0
         self._image_bytes = None
 
         self.load_image()
@@ -116,6 +117,8 @@ class ExampleDetectorController(object):
             self._acquired_frames = 0
             # Set the detector to acquiring
             self._acquiring = True
+            # Reset port
+            self._port_idx = 0
 
     def stop(self):
         # Take the lock
@@ -134,7 +137,7 @@ class ExampleDetectorController(object):
                 if self._acquiring:
                     # Have we waited long enough for a new frame
                     if (datetime.now() - self._update_time).total_seconds() >= self._config_exposure_time:
-                        port = self._ports[port_idx]
+                        port = self._ports[self._port_idx]
                         # Send the frame
                         logging.info(
                             "Sending frame %d -> %d", self._acquired_frames, port
@@ -145,12 +148,11 @@ class ExampleDetectorController(object):
                         # Reset the timer
                         self._update_time = datetime.now()
                         # Update port
-                        port_idx = (port_idx + 1) % len(self._ports)
+                        self._port_idx = (port_idx + 1) % len(self._ports)
                     # Check if the number of frames requested have been sent
                     if self._acquired_frames == self._config_frames:
                         # Turn off acquiring
                         self._acquiring = False
-                        port_idx = 0
 
     def send_frame(self, port: int):
         image_lines = [bytearray(self._image_bytes[i:i + 256]) for i in range(0, len(self._image_bytes), 256)]
