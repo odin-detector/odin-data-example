@@ -127,7 +127,6 @@ class ExampleDetectorController(object):
             self._acquiring = False
 
     def update_loop(self):
-        port_idx = 0
         while self._acq_thread_running:
             # Execute at 1/TIME_TICK Hz
             time.sleep(ExampleDetectorController.TIME_TICK)
@@ -142,13 +141,13 @@ class ExampleDetectorController(object):
                         logging.info(
                             "Sending frame %d -> %d", self._acquired_frames, port
                         )
-                        self.send_frame(self._ports[port_idx])
+                        self.send_frame(self._ports[self._port_idx])
                         # Increment the frame count
                         self._acquired_frames += 1
                         # Reset the timer
                         self._update_time = datetime.now()
                         # Update port
-                        self._port_idx = (port_idx + 1) % len(self._ports)
+                        self._port_idx = (self._port_idx + 1) % len(self._ports)
                     # Check if the number of frames requested have been sent
                     if self._acquired_frames == self._config_frames:
                         # Turn off acquiring
