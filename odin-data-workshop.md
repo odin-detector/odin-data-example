@@ -1,5 +1,5 @@
 # ODIN data workshop
-## 26 November 2026
+## 26 November 2025
 (inspired by https://github.com/stfc-aeg/odin-workshop/blob/master/odin-data.md)
 
 # Table of Contents
